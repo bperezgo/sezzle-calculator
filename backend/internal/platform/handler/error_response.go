@@ -26,6 +26,8 @@ const (
 	MessageInternalError    = "an unexpected error occurred"
 )
 
+const errorCodeKey = "error_code"
+
 type errorResponse struct {
 	Error errorBody `json:"error"`
 }
@@ -35,8 +37,9 @@ type errorBody struct {
 	Message string `json:"message"`
 }
 
-// RespondError aborts the request with the standard error envelope.
+// RespondError aborts the request with the standard error envelope and records the code for the access log.
 func RespondError(c *gin.Context, status int, code, message string) {
+	c.Set(errorCodeKey, code)
 	c.AbortWithStatusJSON(status, errorResponse{Error: errorBody{Code: code, Message: message}})
 }
 
@@ -61,6 +64,11 @@ func respondDomainError(c *gin.Context, err error) {
 	default:
 		RespondInternalError(c, err)
 	}
+}
+
+// ErrorCodeFrom returns the API error code the response carried, or "" on success.
+func ErrorCodeFrom(c *gin.Context) string {
+	return c.GetString(errorCodeKey)
 }
 
 func NotFound(c *gin.Context) {

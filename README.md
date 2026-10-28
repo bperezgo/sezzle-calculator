@@ -30,6 +30,34 @@ make down
 
 Ports taken? `BACKEND_PORT=18080 FRONTEND_PORT=13000 make up` (and the same variables for `make smoke`). Without `make`: `docker compose up --build`.
 
+### Local observability (logs)
+
+Both services write one JSON log line per request (same keys: `time`, `level`, `msg`), tied together by a `request_id` the frontend sends as `X-Request-ID`. An opt-in compose profile ships them to a local Grafana; nothing leaves your machine.
+
+```bash
+make up-obs  # the app + Alloy, Loki and Grafana
+make smoke   # generate some traffic
+make down    # removes everything; logs are not kept
+```
+
+| URL | What |
+|---|---|
+| http://localhost:3001 | Grafana, no login. Explore → Loki |
+| http://localhost:12345 | Alloy UI: pipeline components and their health |
+
+```
+ frontend ──stdout JSON──┐                         ┌──> loki:3100 ──> grafana :3001
+ backend  ──stdout JSON──┴─(docker.sock)─> alloy ──┘    (level label)
+```
+
+Useful queries:
+
+- `{service_name=~"backend|frontend"} | json` — everything, fields extracted.
+- `{service_name="frontend", level="ERROR"}` — backend calls that failed (`reason`: `network`, `timeout`, `server_error`, `invalid_response`).
+- `{service_name="backend"} | json | error_code="division_by_zero"` — API errors by contract code.
+
+Click a `request_id` in any line to see every line of that request in both services. Docker healthcheck hits on `/health` are dropped by Alloy. Ports taken? `GRAFANA_PORT` and `ALLOY_PORT` move them, like `BACKEND_PORT` / `FRONTEND_PORT`. Colima/Podman: point `DOCKER_SOCK` at your Docker socket.
+
 ## Local development
 
 Requirements: Go 1.26+, Node 24+, pnpm 11 (`corepack enable`), golangci-lint v2 (for `make lint`).
@@ -160,6 +188,7 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): backend
 backend/      Go API — cmd/main.go, internal/domain (pure), internal/platform (adapters), tests/ (acceptance), Dockerfile
 frontend/     Next.js app — src/app (page, Server Action, error/not-found), src/components, src/lib, Dockerfile
 scripts/      smoke.sh (stack smoke test)
+deploy/local/ Alloy and Grafana config for the local logs stack (`make up-obs`)
 docs/         ARCHITECTURE.md, api/calculator.md, tickets/ (the plan), PROMPTS.md (AI prompt ledger)
 ```
 

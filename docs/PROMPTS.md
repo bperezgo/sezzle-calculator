@@ -249,3 +249,38 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - **T08.** `scripts/smoke.sh` (`make smoke`, and the CI `docker` job): backend health, `2 + 3` → `"5"`, `10 ÷ 0` → 422 `division_by_zero`, the page renders, and the server-rendered form is re-posted without JS (hidden Server Action fields + operands) and must render `2 + 3 = 5` — a real frontend → `http://backend:8080` round trip. Checked it fails on a wrong expectation. Compose: `restart: unless-stopped`, a 5 s frontend healthcheck so `up --wait` returns in ~15 s, and `BACKEND_PORT` / `FRONTEND_PORT` host-port overrides (the developer's own `make run` / `pnpm dev` held 8080/3000). Verified from a fresh `git clone`; `docker compose stop backend` → the form shows "The calculator service is unavailable. Try again." with HTTP 200. Playwright skipped as recommended. CI not run yet: nothing pushed (T10).
   - **T09.** `README.md` rewritten: Mermaid overview, Docker quick start (incl. port overrides and `make smoke`), local development, API examples for every operation and every error code (all run against the compose stack and pasted), design decisions and assumptions (layered domain-first backend, exact decimals instead of `float64`, size limits, single endpoint, 400 vs 422, percentage semantics, server-first Next.js with no CORS and no-JS support, validation twice, mapped errors, string-only result formatting), testing and coverage (fresh `make cover`: backend 100%, frontend 96.27% statements), CI, layout, AI usage. `docs/ARCHITECTURE.md` finalised: frontend request flow, deployment section; corrected the claim that the UI is driven by `GET /api/v1/operations` (it keeps a typed copy). `docs/api/calculator.md`: `negative_square_root`, `undefined_power`, `operand_too_large` and 404 examples, plus how the UI maps codes. T09's "float64" design point corrected in the ticket to the exact decimals actually built. OpenAPI skipped (optional).
 - **Review:** _to be filled by the developer._
+
+## #14 — Observability: structured logs in Grafana
+
+- **Date:** 2026-10-27
+- **Ticket:** T10 (new; the submission ticket moved to T11)
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Before to run T10, there's something missing here, observability, we don't have enough logs (we will omit, metrics and traces for the moment), let's use the configuration with alloy, and grafana that was defined at ../template, this is just for localhost, so only creates that for this small project, this is T10, and we can move T10 -> T11
+
+- **Outcome:** The path was actually `../template/deploy/local`. Its Alloy + Grafana setup was cut down to logs only (no OTLP receiver, Tempo or Prometheus). Wrote the ticket `T10-observability-logs.md`, renamed the submission ticket to `T11-submission.md` and updated the index and T00's reference. Tests first, then:
+  - **Backend.** `handler.RespondError` records the contract code on the Gin context. The access log adds `error_code` (e.g. `division_by_zero` on a 422, `internal_error` on a recovered panic). New acceptance test `tests/access_log_test.go` plus a middleware unit test.
+  - **Frontend.** `src/lib/logger.ts` (`server-only`) writes JSON lines with slog's keys. `src/lib/api/client.ts` sends a `crypto.randomUUID()` `X-Request-ID`, which the Go middleware already adopts, and logs one `backend call` line: `request_id`, `operation`, `status`, `outcome` (`ok` / `api_error` + `error_code` / `backend_unavailable` + `reason`: `network`, `timeout`, `server_error`, `invalid_response`) and `duration_ms`. Unavailable calls log at `ERROR`. Operands and results are never logged, and a test checks this. Bug found by a test: jsdom's `DOMException` isn't an `Error`, so the timeout check narrows on `name`.
+  - **Local stack.** `deploy/local/alloy/config.alloy` reads Docker socket discovery, keeps only this project's `backend|frontend` containers, labels lines `service_name` and `level`, drops healthcheck `/health` lines and pushes to Loki. `deploy/local/grafana/datasources.yaml` provisions Loki with a `request_id` derived field that links to every line of the same request. Compose services `alloy`, `loki` and `grafana` sit behind the `observability` profile, so `make up` and CI are unchanged. Added `make up-obs`; `make down` now passes the profile. The README has a "Local observability" section and ARCHITECTURE has a logs paragraph.
+  - **Verified** on alternate ports (the developer's dev servers held 8080/3000 and another project's Alloy held 12345): `make smoke`, then Loki through Grafana's proxy. The frontend and backend lines share `request_id` `542621e7-…`, the 422 line carries `error_code`, and `/health` is gone. With the backend stopped, the form shows the friendly message and an `ERROR` line with `reason: network` arrives. Not done by me: clicking the derived link in the Grafana UI.
+- **Review:** _to be filled by the developer._
+
+## #15 — Observability stack troubleshooting
+
+- **Date:** 2026-10-27
+- **Ticket:** T10
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Trying to run the new docker-compose, but alloy and grafana is not running, maybe we need to ignore cache, can you give me the command?
+
+  > the application does not seem to send logs to loki
+
+  > It is currently working, let's continue commiting the changes, and then continue with @docs/tickets/T11-submission.md
+
+- **Outcome:**
+  - Alloy and Grafana sit behind the `observability` profile, so they only start with `make up-obs`, not `make up`. They are prebuilt images, so `--no-cache` doesn't affect them.
+  - No logs in Loki: the Alloy container was running but not attached to `sezzle-calculator_default`, and every push failed with `lookup loki ... network is unreachable`. Its port wasn't published either. Most likely an earlier start had failed because another project's Alloy held 12345, which left a half-created container. Fixed with `docker compose --profile observability up -d --force-recreate --no-deps alloy`; `make down && make up-obs` does the same. Verified: backend and frontend streams arrive in Loki with the `level` label.
+  - T10 committed. The derived-link click criterion stays open until the developer checks it in the UI.
+- **Review:** _to be filled by the developer._

@@ -59,6 +59,8 @@ The dependency rule is enforced by golangci-lint **depguard**: anything under `i
 
 `docker-compose.yml` runs two images. The backend is a static Go binary on distroless (non-root, built-in `-healthcheck` flag); the frontend is the Next.js `standalone` output on Node Alpine (non-root). The frontend reaches the API at `http://backend:8080` on the compose network and starts only once the backend is healthy; both restart `unless-stopped`. Only the frontend needs to be public; the backend port is published for API examples and the smoke test.
 
+Logs: both services log JSON to stdout with slog's keys (`time`, `level`, `msg`). The frontend creates a `request_id` per backend call and sends it as `X-Request-ID`; the API's request-ID middleware adopts it, so the frontend `backend call` line and the API `request` line share it. The API's access log also carries the response's `error_code`. Locally, the `observability` compose profile (`make up-obs`) runs Alloy, which tails the two containers through the Docker socket, labels lines with `service_name` and `level` and pushes them to Loki, read in Grafana (config in `deploy/local/`). No metrics or traces.
+
 ## Frontend layout
 
 | Path | Holds |

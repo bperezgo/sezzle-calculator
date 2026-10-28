@@ -10,6 +10,7 @@ const request: CalculationRequest = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+const consoleLog = vi.spyOn(console, "log");
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -26,10 +27,12 @@ const unavailable = {
 beforeEach(() => {
   vi.stubEnv("BACKEND_URL", BACKEND);
   vi.stubGlobal("fetch", fetchMock);
+  consoleLog.mockImplementation(() => {});
 });
 
 afterEach(() => {
   fetchMock.mockReset();
+  consoleLog.mockReset();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -173,5 +176,144 @@ describe("calculate", () => {
       unavailable,
     );
     expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
+  });
+});
+
+function logLines(): Record<string, unknown>[] {
+  return consoleLog.mock.calls.map(([line]) => JSON.parse(String(line)));
+}
+
+function sentRequestId(call = 0): string | null {
+  return new Headers(fetchMock.mock.calls[call][1]?.headers).get(
+    "X-Request-ID",
+  );
+}
+
+describe("calculate logging", () => {
+  const success = () =>
+    jsonResponse(200, {
+      operation: "divide",
+      operands: ["1", "4"],
+      result: "0.25",
+    });
+
+  it("sends a unique X-Request-ID the backend accepts", async () => {
+    fetchMock.mockImplementation(async () => success());
+
+    await calculate(request);
+    await calculate(request);
+
+    const [first, second] = [sentRequestId(0), sentRequestId(1)];
+    expect(first).toMatch(/^[A-Za-z0-9._-]{1,128}$/);
+    expect(second).toMatch(/^[A-Za-z0-9._-]{1,128}$/);
+    expect(first).not.toBe(second);
+  });
+
+  it("logs a success at INFO with the request ID it sent", async () => {
+    fetchMock.mockResolvedValue(success());
+
+    await calculate(request);
+
+    expect(logLines()).toEqual([
+      {
+        time: expect.any(String),
+        level: "INFO",
+        msg: "backend call",
+        request_id: sentRequestId(),
+        operation: "divide",
+        status: 200,
+        outcome: "ok",
+        duration_ms: expect.any(Number),
+      },
+    ]);
+  });
+
+  it("logs an API error at INFO with its code", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(422, {
+        error: { code: "division_by_zero", message: "division by zero" },
+      }),
+    );
+
+    await calculate(request);
+
+    expect(logLines()).toEqual([
+      expect.objectContaining({
+        level: "INFO",
+        status: 422,
+        outcome: "api_error",
+        error_code: "division_by_zero",
+      }),
+    ]);
+  });
+
+  it.each<[string, () => void, Record<string, unknown>]>([
+    [
+      "network",
+      () => fetchMock.mockRejectedValue(new TypeError("fetch failed")),
+      { reason: "network" },
+    ],
+    [
+      "timeout",
+      () =>
+        fetchMock.mockRejectedValue(
+          new DOMException("The operation timed out.", "TimeoutError"),
+        ),
+      { reason: "timeout" },
+    ],
+    [
+      "server_error",
+      () => fetchMock.mockResolvedValue(new Response(null, { status: 503 })),
+      { reason: "server_error", status: 503 },
+    ],
+    [
+      "invalid_response",
+      () =>
+        fetchMock.mockResolvedValue(new Response("{not json", { status: 200 })),
+      { reason: "invalid_response", status: 200 },
+    ],
+    [
+      "invalid_response (unknown error code)",
+      () =>
+        fetchMock.mockResolvedValue(
+          jsonResponse(400, { error: { code: "teapot", message: "?" } }),
+        ),
+      { reason: "invalid_response", status: 400 },
+    ],
+  ])(
+    "logs backend_unavailable at ERROR with reason %s",
+    async (_, arrange, attrs) => {
+      arrange();
+
+      await expect(calculate(request)).resolves.toEqual(unavailable);
+
+      expect(logLines()).toEqual([
+        expect.objectContaining({
+          level: "ERROR",
+          msg: "backend call",
+          request_id: sentRequestId(),
+          operation: "divide",
+          outcome: "backend_unavailable",
+          ...attrs,
+        }),
+      ]);
+    },
+  );
+
+  it("never logs the operands or the result", async () => {
+    const secret: CalculationRequest = {
+      operation: "add",
+      operands: ["98765.4321", "12345.6789"],
+    };
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { ...secret, result: "111111.111" }),
+    );
+
+    await calculate(secret);
+
+    const line = String(consoleLog.mock.calls[0][0]);
+    expect(line).not.toContain("98765.4321");
+    expect(line).not.toContain("12345.6789");
+    expect(line).not.toContain("111111.111");
   });
 });

@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    uid: loki
+    type: loki
+    url: http://loki:3100
+    access: proxy
+    isDefault: true
+    jsonData:
+      # Frontend and backend lines share "request_id"; this links one to every line of the same request.
+      derivedFields:
+        - name: request_id
+          matcherRegex: '"request_id":"([A-Za-z0-9._-]+)"'
+          url: '{service_name=~"backend|frontend"} |= "$${__value.raw}"'
+          datasourceUid: loki

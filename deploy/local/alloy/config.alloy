@@ -1,0 +1,59 @@
+// Logs only: read this compose project's container stdout through the Docker socket and push it to Loki.
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  // Default is 60 s; the app may start after Alloy, so its logs would lag that long.
+  refresh_interval = "5s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "sezzle-calculator"
+    action        = "keep"
+  }
+
+  // Only the app; the telemetry stack's own logs would drown it.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "backend|frontend"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.json.receiver]
+}
+
+// Both services log slog-style JSON; only `level` becomes a label (low cardinality), the rest is read with `| json`.
+// Lines that are not JSON (the Next.js start-up banner) pass through unlabelled.
+loki.process "json" {
+  // Docker healthchecks hit /health every 5 s; the app still logs them, Grafana doesn't need them.
+  stage.drop {
+    expression = `"path":"/health"`
+  }
+
+  stage.json {
+    expressions = { level = "level" }
+  }
+
+  stage.labels {
+    values = { level = "" }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"sezzle.com/calculator/internal/platform/handler"
 )
 
-// AccessLog logs one line per request; server errors are logged at ERROR with the causes handlers recorded via c.Error.
+// AccessLog logs one line per request with the API error code, if any; server errors are logged at ERROR with the causes handlers recorded via c.Error.
 func AccessLog(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -26,6 +28,9 @@ func AccessLog(logger *slog.Logger) gin.HandlerFunc {
 		level := slog.LevelInfo
 		if status >= http.StatusInternalServerError {
 			level = slog.LevelError
+		}
+		if code := handler.ErrorCodeFrom(c); code != "" {
+			attrs = append(attrs, slog.String("error_code", code))
 		}
 		if len(c.Errors) > 0 {
 			attrs = append(attrs, slog.String("error", c.Errors.String()))

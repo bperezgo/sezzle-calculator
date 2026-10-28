@@ -126,6 +126,20 @@ func TestRecovery_PanicBecomesGenericJSON500AndIsLogged(t *testing.T) {
 	assert.Contains(t, entry, "stack")
 }
 
+func TestAccessLog_PanicIsLoggedAsInternalError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	r := newEngine(middleware.AccessLog(logger), middleware.Recovery(slog.New(slog.NewTextHandler(io.Discard, nil))))
+	r.GET("/panic", func(_ *gin.Context) { panic("boom") })
+
+	r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/panic", nil))
+
+	entry := decodeLog(t, &buf)
+	assert.Equal(t, "ERROR", entry["level"])
+	assert.InDelta(t, http.StatusInternalServerError, entry["status"], 0)
+	assert.Equal(t, "internal_error", entry["error_code"])
+}
+
 func TestRecovery_RepanicsAbortHandler(t *testing.T) {
 	r := newEngine(middleware.Recovery(slog.New(slog.NewTextHandler(io.Discard, nil))))
 	r.GET("/abort", func(_ *gin.Context) { panic(http.ErrAbortHandler) })

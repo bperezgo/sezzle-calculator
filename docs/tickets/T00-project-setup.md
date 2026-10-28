@@ -27,7 +27,7 @@ A monorepo where both apps build, lint, test and run together, so every later ti
 
 ## Follow-ups
 
-- Push to GitHub and confirm the first CI run is green (T10 at the latest; ideally right after T00 is committed).
+- Push to GitHub and confirm the first CI run is green (T11 at the latest; ideally right after T00 is committed).
 
 ## Changes after review (ledger #2)
 

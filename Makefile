@@ -1,4 +1,4 @@
-.PHONY: install install-hooks backend-check frontend-check check cover up down logs smoke
+.PHONY: install install-hooks backend-check frontend-check check cover up up-obs down logs smoke
 
 install:
 	cd frontend && pnpm install
@@ -26,8 +26,13 @@ cover:
 up:
 	docker compose up --build --detach --wait
 
+# The app plus local logs in Grafana (http://localhost:3001); see README "Local observability".
+up-obs:
+	docker compose --profile observability up --build --detach --wait
+
+# The profile flag also removes the observability containers when they are running.
 down:
-	docker compose down
+	docker compose --profile observability down
 
 # Real calculations against the running stack (`make up` first); same script as CI.
 smoke:

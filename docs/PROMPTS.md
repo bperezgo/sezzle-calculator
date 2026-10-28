@@ -152,3 +152,15 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - `docs/api/calculator.md` with curl examples, all verified against `make up`; `docs/ARCHITECTURE.md` request flow updated.
   - Coverage: handler 92.5%, middleware 96.9%, server 100%, domain 100%; `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #8 — Drop the Calculator port
+
+- **Date:** 2026-10-27
+- **Ticket:** T03 (supersedes part of T02)
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > I don't need a port for the service, you can call it directly from the handler, adding that interface of Calculator increases complexity
+
+- **Outcome:** Removed `internal/domain/ports` (interface + generated mock), `.mockery.yaml`, the `generate-mocks`/`regenerate-mocks` Make targets and the `stretchr/objx` dependency. `NewCalculatorService()` returns `*CalculatorService`; `CalculationHandler` takes it directly. Handler tests rewritten against the real service (domain errors from real inputs, non-domain 500 via a cancelled context); the unknown-`Kind` mapper branch has a small internal test. Updated `AGENTS.md` (concrete types, no interfaces until a second implementation or external dependency), `docs/ARCHITECTURE.md`, the T03 criterion, a "Superseded" note in T02 and the tickets README. `.claude/settings.json` still lists the removed mock targets/path (edit blocked by the auto-mode classifier; harmless). Coverage unchanged (handler 92.5%); `make check` green.
+- **Review:** _to be filled by the developer._

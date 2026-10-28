@@ -23,7 +23,7 @@ Status legend: ⬜ Todo · 🟨 In progress · ✅ Done. Update the table when a
 1. **Read** the ticket. Resolve its *Decisions* first (agree or override the recommendation) and record the outcome in the ticket.
 2. **Plan:** review the acceptance criteria together; add or sharpen criteria until each one has a concrete input and an exact expected output (value, error code, HTTP status, UI text).
 3. **Test first:** write one test (or table row) per criterion, named after it, and watch it fail.
-4. **Implement** until green — backend domain-first (value objects → service → ports → handler → wiring).
+4. **Implement** until green — backend domain-first (value objects → service → handler → wiring).
 5. **Verify:** `make check` green (and `make up` when runtime wiring changed). Tick the criteria.
 6. **Ledger:** append the prompts used to `docs/PROMPTS.md`; fill in *Review*.
 7. **Commit:** small commits allowed; the last one is `Completed: 'Tnn: <title>'`. Mark the ticket ✅ here.

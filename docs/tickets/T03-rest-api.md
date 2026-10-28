@@ -12,7 +12,7 @@ The HTTP adapter: endpoints for calculator operations that validate input, handl
 ## Scope
 
 ### In
-- `platform/handler/calculation_handler.go`: bind JSON → validate shape → call `ports.Calculator` → encode.
+- `platform/handler/calculation_handler.go`: bind JSON → validate shape → call `service.CalculatorService` → encode.
 - `platform/handler/error_response.go`: the **single** domain-error → HTTP mapper (`KindInvalidInput` → 400, `KindMath` → 422, unknown → 500 with a generic message, cause logged not shown).
 - Malformed JSON / wrong types / missing fields → 400 `invalid_request`; body over 1 MiB → 413; unknown route → 404 JSON; wrong method → 405 JSON.
 - `platform/middleware`: request ID (`X-Request-ID` echo/generate), `slog` access log, JSON panic recovery.
@@ -39,7 +39,7 @@ The HTTP adapter: endpoints for calculator operations that validate input, handl
 - [x] `{"operation":"add","operands":["a","1"]}` → 400 `invalid_operand`.
 - [x] Unknown operation → 400 `unsupported_operation`; wrong arity → 400 `invalid_operand_count`.
 - [x] Every response (including 404/405/500) is `application/json`.
-- [x] Handler tests use the mockery mock; router tests go end-to-end with the real service.
+- [x] Handler tests and router tests use the real service (no mocks). *Changed after review: the `ports.Calculator` interface and its mockery mock were removed as unneeded indirection.*
 - [x] `X-Request-ID` present on every response.
 
 - [x] Decision 5: `GET /api/v1/operations` lists the domain registry in display order.

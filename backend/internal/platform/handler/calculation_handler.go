@@ -9,14 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"sezzle.com/calculator/internal/domain/dto"
-	"sezzle.com/calculator/internal/domain/ports"
+	"sezzle.com/calculator/internal/domain/service"
 )
 
 type CalculationHandler struct {
-	calculator ports.Calculator
+	calculator *service.CalculatorService
 }
 
-func NewCalculationHandler(calculator ports.Calculator) *CalculationHandler {
+func NewCalculationHandler(calculator *service.CalculatorService) *CalculationHandler {
 	return &CalculationHandler{calculator: calculator}
 }
 

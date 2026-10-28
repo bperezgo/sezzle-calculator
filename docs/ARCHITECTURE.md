@@ -9,15 +9,12 @@
              Server Component page                     Gin router
              Server Action  ──► src/lib/api (server-only)   │
                                                             ▼
-                                     platform/handler ──► domain/ports (driving port)
-                                     (adapter)                 ▲
-                                                               │ implemented by
-                                                        domain/service ──► domain/calculator
-                                                        (use case)         (value objects + pure rules)
+                                     platform/handler ──► domain/service ──► domain/calculator
+                                     (adapter)            (use case)         (value objects + pure rules)
 ```
 
 - The **browser only talks to Next.js**. `BACKEND_URL` is a server-only variable, so there is no CORS, no backend URL in the bundle, and the form works before hydration (progressive enhancement).
-- The **Go domain is pure**: no Gin, no `net/http`, no JSON. It is reached through a driving port (the use-case interface the HTTP handler depends on). There are no driven ports yet — no database, no external services, so no repositories.
+- The **Go domain is pure**: no Gin, no `net/http`, no JSON. The HTTP handler calls the use case (`service.CalculatorService`) directly: with one implementation and no I/O, an interface would only add indirection, and the real service is cheap to use in handler tests. No database, no external services, so no repositories.
 - **Numbers are exact decimals** (`shopspring/decimal`) end to end: strings on the wire and in DTOs, `decimal.Decimal` inside the domain, never `float64` / JS `number`.
 - **Composition roots:** `backend/cmd/main.go` (config → services → handlers → router → server) and the Next.js app router.
 
@@ -28,14 +25,14 @@ A calculation, from the HTTP adapter inward:
 0. `platform/server` runs every request through `middleware`: request ID (`X-Request-ID` echoed or generated) → `slog` access log → JSON panic recovery → 1 MiB body limit. Unknown routes/methods answer the JSON error envelope (404/405).
 
 1. `platform/handler` decodes the JSON body into `dto.CalculationRequest{Operation, Operands []string}`. Operands may be JSON strings or numbers; numbers keep their raw text, so no `float64` is ever involved. Unusable bodies stop here with 400 `invalid_request` (413 over the limit).
-2. It calls the driving port `ports.Calculator.Calculate(ctx, req)`. The handler only knows the interface; tests use the generated `mocks.MockCalculator`.
+2. It calls `service.CalculatorService.Calculate(ctx, req)` directly; handler tests use the real service.
 3. `service.CalculatorService` returns `ctx.Err()` at once if the request was cancelled. Otherwise it builds value objects: `calculator.ParseOperation` → `calculator.NewOperand` per operand → `calculator.NewCalculation` (arity check) → `Evaluate()`.
 4. On success it returns `dto.CalculationResult{Operation, Operands, Result}`. Operands are echoed in canonical form (`"2.50"` → `"2.5"`) and the result is a canonical decimal string.
 5. On failure the `*domainerror.Error` is returned **untouched** (`Kind`, `Code`, `Fields`). `handler/error_response.go` is the single mapper: `KindInvalidInput` → 400, `KindMath` → 422, anything else → 500 `internal_error` with the cause logged, never returned. See `docs/api/calculator.md` for the contract.
 
-`ports.Calculator.Operations(ctx)` lists the supported operations (`name`, `arity`, `symbol`) in display order, so the API (`GET /api/v1/operations`) and the UI are driven by the domain's registry.
+`CalculatorService.Operations(ctx)` lists the supported operations (`name`, `arity`, `symbol`) in display order, so the API (`GET /api/v1/operations`) and the UI are driven by the domain's registry.
 
-**Persistence would add a driven port, not change this one.** Calculation history, for example, would be a `ports.CalculationRepository` (driven, implemented by an adapter in `platform/`) injected into `NewCalculatorService(repo)`. `ports.Calculator` and its callers would stay as they are.
+**Interfaces arrive with real dependencies.** Calculation history, for example, would add a `CalculationRepository` interface defined next to the service (implemented by an adapter in `platform/`, faked in service tests) and injected into `NewCalculatorService(repo)`. The handler would not change.
 
 ## Backend packages
 
@@ -44,8 +41,7 @@ A calculation, from the HTTP adapter inward:
 | `internal/domain/calculator` | Value objects (`Operation`, `Operand`, …) and pure arithmetic rules on `shopspring/decimal` | stdlib (no I/O), `shopspring/decimal`, `domain/error` |
 | `internal/domain/dto` | Plain structs crossing layer boundaries; decimals travel as canonical strings | stdlib |
 | `internal/domain/error` | Categorised domain errors (`Kind`, `Code`, `Message`) | stdlib |
-| `internal/domain/ports` | Interfaces: the driving `Calculator` port (`Calculate`, `Operations`) (+ generated `mocks/`) | `domain/dto`, stdlib |
-| `internal/domain/service` | Use cases implementing the ports | `domain/*` |
+| `internal/domain/service` | Use cases (`CalculatorService`: `Calculate`, `Operations`) | `domain/*` |
 | `internal/platform/handler` | Gin handlers: bind → validate → call port → encode; the single error → HTTP mapper | `domain/*`, Gin |
 | `internal/platform/server` | Router (route table + middleware) | `platform/*`, Gin |
 | `internal/platform/middleware` | Request ID, access log (`slog`), recovery, body limit | Gin, stdlib |
@@ -66,8 +62,8 @@ The dependency rule is enforced by golangci-lint **depguard**: anything under `i
 | Layer | Style | Doubles |
 |---|---|---|
 | `domain/calculator` | Table-driven unit tests over pure functions | none |
-| `domain/service` | Scenario tests per spec requirement | none / mocks of driven ports if any appear |
-| `platform/handler` | `httptest` + Gin test context, status + JSON body | mockery mock of the `Calculator` port |
+| `domain/service` | Scenario tests per spec requirement | none |
+| `platform/handler` | `httptest` + Gin test context, status + JSON body | none (real service) |
 | `platform/server` | End-to-end through the real router + real service | none |
 | `frontend/src/lib` | Unit tests; `fetch` mocked with `vi.fn()` | mocked `fetch` |
 | `frontend/src/components` | Testing Library through roles/labels, `user-event` | mocked Server Action |

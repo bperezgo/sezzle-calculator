@@ -5,12 +5,11 @@ import (
 
 	"sezzle.com/calculator/internal/domain/calculator"
 	"sezzle.com/calculator/internal/domain/dto"
-	"sezzle.com/calculator/internal/domain/ports"
 )
 
 type CalculatorService struct{}
 
-func NewCalculatorService() ports.Calculator {
+func NewCalculatorService() *CalculatorService {
 	return &CalculatorService{}
 }
 

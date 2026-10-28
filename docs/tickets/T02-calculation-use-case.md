@@ -40,6 +40,10 @@ Expose the domain through a **driving port** so the HTTP adapter depends on an i
 - Operands are parsed before the arity check, so `["abc"]` for a binary operation reports `invalid_operand` rather than `invalid_operand_count`.
 - `Operations(ctx)` returns no error: it reads a static registry and has nothing to cancel.
 
+## Superseded
+
+- After T03 review the `ports.Calculator` interface, its generated mock and the mockery setup were removed: `NewCalculatorService()` returns `*CalculatorService` and the handler calls it directly. With a single implementation and no I/O, the interface only added indirection. The "Mocks generated" criterion above no longer applies.
+
 ## Definition of done
 
 `make check` green · ledger updated · commit `Completed: 'T02: Calculation use case'`.

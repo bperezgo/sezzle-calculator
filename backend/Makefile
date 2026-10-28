@@ -1,6 +1,4 @@
-.PHONY: run build test test-race cover cover-html lint lint-fix fmt generate-mocks regenerate-mocks vuln check
-
-MOCKERY := $(shell command -v mockery 2>/dev/null || echo $(HOME)/go/bin/mockery)
+.PHONY: run build test test-race cover cover-html lint lint-fix fmt vuln check
 
 run:
 	GIN_MODE=debug go run ./cmd
@@ -28,13 +26,6 @@ lint-fix:
 
 fmt:
 	golangci-lint fmt
-
-generate-mocks:
-	$(MOCKERY)
-
-regenerate-mocks:
-	rm -rf internal/domain/ports/mocks
-	$(MAKE) generate-mocks
 
 vuln:
 	govulncheck ./...

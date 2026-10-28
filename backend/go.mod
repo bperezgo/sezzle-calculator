@@ -4,6 +4,7 @@ go 1.26.10
 
 require (
 	github.com/gin-gonic/gin v1.12.0
+	github.com/shopspring/decimal v1.6.0
 	github.com/stretchr/testify v1.12.1
 )
 

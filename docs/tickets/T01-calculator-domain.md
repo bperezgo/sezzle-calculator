@@ -3,7 +3,7 @@
 - **Area:** backend
 - **Depends on:** T00
 - **Estimate:** 30 min
-- **Status:** ⬜ Todo
+- **Status:** ✅ Done
 
 ## Goal
 
@@ -26,21 +26,30 @@ The pure business core: addition, subtraction, multiplication and division as va
 ## Decisions
 
 1. **Number type** — ✅ **`shopspring/decimal`** (developer's call): exact base-10 arithmetic, battle-tested, so `0.1 + 0.2 = 0.3` exactly. Consequences: operands and results travel as decimal **strings** across layers (see T02/T03); the frontend never does arithmetic on JS numbers.
-2. **Division precision** — `decimal.Div` uses the package-global `DivisionPrecision` (16). *Recommendation:* call `DivRound(d2, resultScale)` with a domain constant `resultScale = 16` instead of mutating the global; document "results are rounded half away from zero to 16 decimal places when not exact".
-3. **Input limits** — decimals are arbitrary precision, so a malicious operand with 1 000 000 digits is valid but expensive. *Recommendation:* reject operands with more than 50 significant digits or an exponent beyond ±1000 → `operand_too_large`.
+2. **Division precision** — ✅ `DivRound(d2, resultScale)` with a domain constant `resultScale = 16`; the package-global `decimal.DivisionPrecision` is never mutated. Results that are not exact are rounded half away from zero to 16 decimal places (documented in the API docs).
+3. **Input limits** — ✅ decimals are arbitrary precision, so a 1 000 000-digit operand would be valid but expensive. Reject operands with more than 50 significant digits or an exponent beyond ±1000 → `operand_too_large`. Limits are domain constants (`maxSignificantDigits = 50`, `maxExponent = 1000`).
 
 ## Acceptance criteria
 
-- [ ] `add ["2", "3"]` → `5`; `subtract ["5", "8"]` → `-3`; `multiply ["4", "2.5"]` → `10`; `divide ["10", "4"]` → `2.5`.
-- [ ] `add ["0.1", "0.2"]` → exactly `0.3`.
-- [ ] `divide ["1", "3"]` → `0.3333333333333333` (16 places).
-- [ ] `divide ["x", "0"]` → `division_by_zero` (including `["0", "0"]`).
-- [ ] `modulo` → `unsupported_operation`.
-- [ ] Binary op with 1 or 3 operands → `invalid_operand_count`.
-- [ ] `"abc"`, `""`, `"1,5"` → `invalid_operand`; `"1e3"` and `"-0.5"` accepted.
-- [ ] 51-digit operand → `operand_too_large`.
-- [ ] Results print without trailing zeros (`"10"`, not `"10.0"`).
-- [ ] Table-driven tests, one row per criterion; coverage ≥ 90% on `internal/domain/...`.
+- [x] `add ["2", "3"]` → `5`; `subtract ["5", "8"]` → `-3`; `multiply ["4", "2.5"]` → `10`; `divide ["10", "4"]` → `2.5`.
+- [x] `add ["0.1", "0.2"]` → exactly `0.3`.
+- [x] `divide ["1", "3"]` → `0.3333333333333333` (16 places).
+- [x] `divide ["x", "0"]` → `division_by_zero` (including `["0", "0"]`).
+- [x] `modulo` → `unsupported_operation`.
+- [x] Binary op with 1 or 3 operands → `invalid_operand_count`.
+- [x] `"abc"`, `""`, `"1,5"` → `invalid_operand`; `"1e3"` and `"-0.5"` accepted.
+- [x] `divide ["2", "3"]` → `0.6666666666666667` (rounded half away from zero, not truncated).
+- [x] 50-significant-digit operand accepted; 51-digit operand → `operand_too_large`.
+- [x] `"1e1000"` and `"1e-1000"` accepted; `"1e1001"` and `"1e-1001"` → `operand_too_large`.
+- [x] Results print without trailing zeros (`"10"`, not `"10.0"`).
+- [x] Table-driven tests, one row per criterion; coverage ≥ 90% on `internal/domain/...`.
+
+## Implementation notes
+
+- **Exponent limit is the scientific exponent** (`d.ddd × 10^e`), so `"10e1000"` counts as `1e1001` → `operand_too_large`. Significant digits ignore leading and trailing zeros (`"000123000"` has 3).
+- Zero is never too large (`"0e5000"` is just `0`).
+- Exponents the library cannot represent at all (e.g. `"1e99999999999"`) fail parsing → `invalid_operand`.
+- Errors carry request details in `Fields` (`operation`, `operand`, `expected`/`received`) via `WithFields`, which copies — sentinels are never mutated.
 
 ## Definition of done
 

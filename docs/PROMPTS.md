@@ -88,3 +88,30 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - govulncheck (second run): `quic-go` (GO-2026-5676, via Gin) → v0.64.1.
   - gitleaks: failed only because the push range starts at the root commit (no parent); passes on later pushes.
 - **Review:** _to be filled by the developer._
+
+## #4 — T01 decisions: rounding and input limits
+
+- **Date:** 2026-10-27
+- **Ticket:** T01
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Agree with both, add that to T01
+
+- **Outcome:** T01 decisions 2 and 3 marked accepted: `resultScale = 16` via `DivRound` (global `DivisionPrecision` untouched, half-away-from-zero rounding); operand limits `maxSignificantDigits = 50`, `maxExponent = 1000` → `operand_too_large`. Added acceptance criteria for rounding (`2/3` → `0.6666666666666667`) and both limit boundaries.
+- **Review:** _to be filled by the developer._
+
+## #5 — Implement T01
+
+- **Date:** 2026-10-27
+- **Ticket:** T01
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Let's implement @docs/tickets/T01-calculator-domain.md
+
+- **Outcome:** Added `shopspring/decimal` v1.6.0. Tests written first (one table row per acceptance criterion), then:
+  - `internal/domain/error`: `*Error{Kind, Code, Message, Fields}`, five sentinels with contract codes/messages as constants, `errors.Is` by code, `WithFields` returns a copy.
+  - `internal/domain/calculator`: `Operation` (parsed from a string, carries `Arity` and its evaluator, so T04 just adds registry entries), `Operand` (from string only; ≤ 50 significant digits, scientific exponent within ±1000), `Calculation` via `NewCalculation` (arity check) → `Evaluate()`. Division uses `DivRound(…, 16)`.
+  - Coverage 100% on both domain packages; `make check` green.
+- **Review:** _to be filled by the developer._

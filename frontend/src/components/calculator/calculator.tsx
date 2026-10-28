@@ -12,7 +12,17 @@ import {
   initialCalculatorState,
   type CalculatorState,
 } from "@/lib/calculator-state";
+import {
+  apiErrorField,
+  apiErrorMessage,
+  fieldErrorMessage,
+} from "@/lib/errors";
 import { formatDecimal } from "@/lib/format";
+import {
+  parseCalculationForm,
+  type CalculatorField,
+  type FieldErrors,
+} from "@/lib/validation";
 
 import { describeCalculation, OPERATION_LABELS } from "./operations";
 
@@ -33,6 +43,15 @@ const field =
 
 const label = "mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300";
 
+const invalidField =
+  "aria-invalid:border-red-600 dark:aria-invalid:border-red-400";
+
+const RESULT_MESSAGE_ID = "result-message";
+
+function fieldErrorsOf(state: CalculatorState): FieldErrors {
+  return state.status === "error" ? state.fieldErrors : {};
+}
+
 export function Calculator({
   action,
   initialState = initialCalculatorState,
@@ -41,13 +60,58 @@ export function Calculator({
   const [operation, setOperation] = useState(state.values.operation);
   const [a, setA] = useState(state.values.a);
   const [b, setB] = useState(state.values.b);
+  const [fieldErrors, setFieldErrors] = useState(fieldErrorsOf(state));
+  const [shownState, setShownState] = useState(state);
+
+  // Field errors come from the client check or, without JS, from the action's state.
+  if (state !== shownState) {
+    setShownState(state);
+    setFieldErrors(fieldErrorsOf(state));
+  }
 
   // A form action resets the form when it settles, and React 19 doesn't restore a
   // controlled <select>. Submitting manually skips the reset; without JS `action` still posts.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const parsed = parseCalculationForm(formData);
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      const first = (["a", "operation", "b"] as const).find(
+        (name) => parsed.fieldErrors[name],
+      );
+      if (first) form.querySelector<HTMLElement>(`#${first}`)?.focus();
+      return;
+    }
+    setFieldErrors({});
     startTransition(() => formAction(formData));
+  }
+
+  function edit(name: CalculatorField, setValue: (value: string) => void) {
+    return (value: string) => {
+      setValue(value);
+      if (fieldErrors[name]) {
+        setFieldErrors((errors) => ({ ...errors, [name]: undefined }));
+      }
+    };
+  }
+
+  const apiField =
+    state.status === "error" && state.error
+      ? apiErrorField(state.error.code)
+      : undefined;
+
+  function errorFor(name: CalculatorField) {
+    const code = fieldErrors[name];
+    if (code) {
+      return {
+        message: fieldErrorMessage(name, code),
+        describedBy: `${name}-error`,
+      };
+    }
+    if (apiField === name) return { describedBy: RESULT_MESSAGE_ID };
+    return undefined;
   }
 
   const unary =
@@ -60,20 +124,13 @@ export function Calculator({
       onSubmit={handleSubmit}
       className="flex w-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm sm:p-6 dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div>
-        <label htmlFor="a" className={label}>
-          {unary ? "Number" : "First number"}
-        </label>
-        <input
-          id="a"
-          name="a"
-          inputMode="decimal"
-          autoComplete="off"
-          value={a}
-          onChange={(event) => setA(event.target.value)}
-          className={field}
-        />
-      </div>
+      <OperandField
+        name="a"
+        label={unary ? "Number" : "First number"}
+        value={a}
+        onChange={edit("a", setA)}
+        error={errorFor("a")}
+      />
 
       <div>
         <label htmlFor="operation" className={label}>
@@ -83,8 +140,12 @@ export function Calculator({
           id="operation"
           name="operation"
           value={operation}
-          onChange={(event) => setOperation(event.target.value)}
-          className={field}
+          onChange={(event) =>
+            edit("operation", setOperation)(event.target.value)
+          }
+          aria-invalid={errorFor("operation") ? true : undefined}
+          aria-describedby={errorFor("operation")?.describedBy}
+          className={`${field} ${invalidField}`}
         >
           {OPERATIONS.map((op) => (
             <option key={op} value={op}>
@@ -92,23 +153,20 @@ export function Calculator({
             </option>
           ))}
         </select>
+        <FieldError
+          id="operation-error"
+          message={errorFor("operation")?.message}
+        />
       </div>
 
       {!unary && (
-        <div>
-          <label htmlFor="b" className={label}>
-            Second number
-          </label>
-          <input
-            id="b"
-            name="b"
-            inputMode="decimal"
-            autoComplete="off"
-            value={b}
-            onChange={(event) => setB(event.target.value)}
-            className={field}
-          />
-        </div>
+        <OperandField
+          name="b"
+          label="Second number"
+          value={b}
+          onChange={edit("b", setB)}
+          error={errorFor("b")}
+        />
       )}
 
       <button
@@ -131,6 +189,51 @@ export function Calculator({
   );
 }
 
+type FieldErrorProps = { message?: string; describedBy: string };
+
+function OperandField({
+  name,
+  label: text,
+  value,
+  onChange,
+  error,
+}: {
+  name: "a" | "b";
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: FieldErrorProps;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className={label}>
+        {text}
+      </label>
+      <input
+        id={name}
+        name={name}
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error?.describedBy}
+        className={`${field} ${invalidField}`}
+      />
+      <FieldError id={`${name}-error`} message={error?.message} />
+    </div>
+  );
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1 text-sm text-red-700 dark:text-red-400">
+      {message}
+    </p>
+  );
+}
+
 function ResultPanel({ state }: { state: CalculatorState }) {
   switch (state.status) {
     case "idle":
@@ -150,9 +253,13 @@ function ResultPanel({ state }: { state: CalculatorState }) {
         </>
       );
     case "error":
+      if (!state.error) return null;
       return (
-        <span className="block text-red-700 dark:text-red-400">
-          {state.error?.message ?? "Check the numbers you entered."}
+        <span
+          id={RESULT_MESSAGE_ID}
+          className="block text-red-700 dark:text-red-400"
+        >
+          {apiErrorMessage(state.error.code)}
         </span>
       );
   }

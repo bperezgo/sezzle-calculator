@@ -228,3 +228,22 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - `vitest.setup.ts`: Testing Library `cleanup` after each test (auto-cleanup needs Vitest globals).
   - Verified against the running Go API: no-JS multipart POST renders `10 ÷ 4 = 2.5` with inputs kept; at 320 px there's no horizontal scroll and controls are 44 px; a 1000-digit `2^1000` wraps and scrolls; dark mode follows `prefers-color-scheme`. `BACKEND_URL` is still absent from `.next/static`. Error messages are the raw API text for now; T07 maps them. `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #13 — Error handling UX, full-stack integration, documentation
+
+- **Date:** 2026-10-27
+- **Ticket:** T07, T08, T09
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > let's finish the missing tasks for starting to test the app
+  > @docs/tickets/T07-error-handling-ux.md , @docs/tickets/T08-full-stack-integration.md and @docs/tickets/T09-documentation.md.
+  > Let the T10 for the end, so I can check all is working before submitting
+
+- **Outcome:**
+  - **T07.** Read the Next 16 `error.js` / `not-found.js` docs first (props are now `error: unknown` + `retry`). Tests first, then:
+    - `src/lib/errors.ts`: the single place for user-facing messages. `apiErrorMessage(code)` covers every API code plus `backend_unavailable` (the API's own `message` is never shown); `fieldErrorMessage(field, code)` gives "Enter a number" / "Enter a valid number" / "Choose an operation"; `apiErrorField(code)` ties `division_by_zero` to the second operand and `negative_square_root` to the first.
+    - Calculator: client-side validation on submit with the same `parseCalculationForm` the Server Action uses; invalid → inline error under the field (`aria-invalid`, `aria-describedby`), focus moves to the first invalid field, the action is not called. Editing a field clears its error. Field errors returned by the action (no-JS path) render the same way. API errors show the mapped message in the `aria-live` panel and flag the related operand (described by the panel message). Inputs are kept in every case.
+    - `src/app/error.tsx` (friendly message, never the raw error, "Try again" → `retry()`) and `src/app/not-found.tsx` (link back to the calculator).
+    - One existing expectation changed, as the ticket requires: "shows an error from the action state" now asserts the mapped "You can't divide by zero." instead of the raw API text.
+- **Review:** _to be filled by the developer._

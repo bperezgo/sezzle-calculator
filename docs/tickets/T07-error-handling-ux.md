@@ -3,7 +3,7 @@
 - **Area:** frontend
 - **Depends on:** T06
 - **Estimate:** 20 min
-- **Status:** ⬜ Todo
+- **Status:** ✅ Done
 
 ## Goal
 
@@ -23,12 +23,12 @@ Every way a calculation can fail produces a clear, specific message next to the 
 
 ## Acceptance criteria
 
-- [ ] Empty operand → "Enter a number" without calling the server.
-- [ ] `abc` → "Enter a valid number".
-- [ ] `10 ÷ 0` → backend 422 → "You can't divide by zero." and inputs kept.
-- [ ] `sqrt -4` → specific message.
-- [ ] Backend down → `backend_unavailable` message, no crash.
-- [ ] Tests for each row above.
+- [x] Empty operand → "Enter a number" without calling the server.
+- [x] `abc` → "Enter a valid number".
+- [x] `10 ÷ 0` → backend 422 → "You can't divide by zero." and inputs kept.
+- [x] `sqrt -4` → specific message ("You can't take the square root of a negative number.").
+- [x] Backend down → `backend_unavailable` message, no crash.
+- [x] Tests for each row above. (`src/components/calculator/calculator.test.tsx` › "Calculator error handling", `src/lib/errors.test.ts`, `src/app/error.test.tsx`, `src/app/not-found.test.tsx`)
 
 ## Definition of done
 

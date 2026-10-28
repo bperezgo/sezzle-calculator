@@ -85,5 +85,6 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - govulncheck: reachable stdlib `crypto/x509` vuln (GO-2026-6809, fixed in Go 1.26.10) and `golang.org/x/net` HPACK race (GO-2026-6617) → `go 1.26.10`, builder image `golang:1.26.10-alpine`, `x/net` v0.62.0.
   - golangci-lint v2.6.2 binary is built with Go 1.25 and refuses a Go 1.26 module → CI uses v2.15.0.
   - Docker build: empty `frontend/public/` was not tracked by git, so the clean checkout lacked it → `public/.gitkeep`.
+  - govulncheck (second run): `quic-go` (GO-2026-5676, via Gin) → v0.64.1.
   - gitleaks: failed only because the push range starts at the root commit (no parent); passes on later pushes.
 - **Review:** _to be filled by the developer._

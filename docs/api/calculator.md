@@ -111,6 +111,14 @@ curl -s -X POST localhost:8080/api/v1/calculations \
 # 422 {"error":{"code":"result_too_large","message":"result exceeds the supported size"}}
 
 curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"sqrt","operands":["-4"]}'
+# 422 {"error":{"code":"negative_square_root","message":"square root of a negative number is undefined"}}
+
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"power","operands":["0","0"]}'
+# 422 {"error":{"code":"undefined_power","message":"power is undefined for these operands"}}
+
+curl -s -X POST localhost:8080/api/v1/calculations \
   -d '{"operation":"add","operands":["a","1"]}'
 # 400 {"error":{"code":"invalid_operand","message":"operand is not a valid decimal number"}}
 
@@ -126,8 +134,19 @@ curl -s -X POST localhost:8080/api/v1/calculations \
   -d '{"operation":"add","operands":["1"]}'
 # 400 {"error":{"code":"invalid_operand_count","message":"wrong number of operands for operation"}}
 
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"add","operands":["123456789012345678901234567890123456789012345678901","1"]}'
+# 400 {"error":{"code":"operand_too_large","message":"operand exceeds the supported size"}}
+
 curl -s -i localhost:8080/api/v1/calculations
 # HTTP/1.1 405 Method Not Allowed
 # Allow: POST
 # {"error":{"code":"method_not_allowed","message":"method not allowed for this route"}}
+
+curl -s localhost:8080/nope
+# 404 {"error":{"code":"not_found","message":"route not found"}}
 ```
+
+## How the frontend shows errors
+
+The UI never shows `message`; `frontend/src/lib/errors.ts` maps each `code` to its own text (e.g. `division_by_zero` → "You can't divide by zero."). The frontend's API client adds one code of its own, `backend_unavailable`, for network failure, timeout (5 s), any 5xx, or a response that doesn't match this contract.

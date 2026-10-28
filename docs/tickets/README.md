@@ -13,7 +13,7 @@ The plan to deliver the brief in `test.md` (budget ~2–4 h of build time). Work
 | [T06](T06-calculator-ui.md) | Calculator UI | frontend | T05 | 45 min | ✅ Done |
 | [T07](T07-error-handling-ux.md) | Validation and error handling UX | frontend | T06 | 20 min | ✅ Done |
 | [T08](T08-full-stack-integration.md) | Full-stack integration (compose + e2e smoke) | repo | T04, T07 | 20 min | ✅ Done |
-| [T09](T09-documentation.md) | Documentation and coverage report | docs | T08 | 25 min | ⬜ Todo |
+| [T09](T09-documentation.md) | Documentation and coverage report | docs | T08 | 25 min | ✅ Done |
 | [T10](T10-submission.md) | Final review and submission | repo | T09 | 15 min | ⬜ Todo |
 
 Status legend: ⬜ Todo · 🟨 In progress · ✅ Done. Update the table when a ticket changes state.

@@ -3,7 +3,7 @@
 - **Area:** docs
 - **Depends on:** T08
 - **Estimate:** 25 min
-- **Status:** ⬜ Todo
+- **Status:** ✅ Done
 
 ## Goal
 
@@ -12,7 +12,7 @@ Everything the brief's *Deliverables* and *Make sure your README includes* secti
 ## Scope
 
 ### In
-- `README.md`: setup instructions; how to run frontend and backend (compose and locally); API examples (curl for every operation + error cases, with real responses); design decisions and assumptions (hexagonal backend, server-first Next.js, single calculations endpoint, float64, error envelope, percentage semantics, 422 vs 400, why no CORS); testing and coverage; AI usage → `docs/PROMPTS.md`.
+- `README.md`: setup instructions; how to run frontend and backend (compose and locally); API examples (curl for every operation + error cases, with real responses); design decisions and assumptions (hexagonal backend, server-first Next.js, single calculations endpoint, exact decimals instead of float64 (changed in T01: `shopspring/decimal`, strings on the wire), error envelope, percentage semantics, 422 vs 400, why no CORS); testing and coverage; AI usage → `docs/PROMPTS.md`.
 - Coverage report: `make cover` produces `backend/coverage.html` and `frontend/coverage/index.html`; README states the current numbers; CI uploads both as artifacts (already in place since T00).
 - Finalise `docs/ARCHITECTURE.md` and `docs/api/calculator.md`.
 - Optional: a small architecture diagram (Mermaid in the README).
@@ -22,9 +22,9 @@ Everything the brief's *Deliverables* and *Make sure your README includes* secti
 
 ## Acceptance criteria
 
-- [ ] A reviewer can go from clone to running app using only the README.
-- [ ] Every curl example in the README was run and its output pasted.
-- [ ] Coverage numbers in the README match a fresh `make cover`.
+- [x] A reviewer can go from clone to running app using only the README. (Quick start = `git clone` → `make up`, exercised from a fresh clone in T08)
+- [x] Every curl example in the README was run and its output pasted. (against the compose stack built from `HEAD`)
+- [x] Coverage numbers in the README match a fresh `make cover`. (backend 100% statements; frontend 96.27 / 94.28 / 97.56 / 96.55)
 
 ## Definition of done
 

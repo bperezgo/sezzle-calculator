@@ -1,7 +1,5 @@
 # Architecture
 
-> Living document. T00 set up the skeleton; each ticket updates the sections it touches. T09 finalises it.
-
 ## Shape
 
 ```
@@ -20,7 +18,7 @@
 
 ## Request flow
 
-A calculation, from the HTTP adapter inward:
+### Go API, from the HTTP adapter inward
 
 0. `platform/server` runs every request through `middleware`: request ID (`X-Request-ID` echoed or generated) → `slog` access log → JSON panic recovery → 1 MiB body limit. Unknown routes/methods answer the JSON error envelope (404/405).
 
@@ -30,9 +28,17 @@ A calculation, from the HTTP adapter inward:
 4. On success it returns `dto.CalculationResult{Operation, Operands, Result}`. Operands are echoed in canonical form (`"2.50"` → `"2.5"`) and the result is a canonical decimal string.
 5. On failure the `*domainerror.Error` is returned **untouched** (`Kind`, `Code`, `Fields`). `handler/error_response.go` is the single mapper: `KindInvalidInput` → 400, `KindMath` → 422, anything else → 500 `internal_error` with the cause logged, never returned. See `docs/api/calculator.md` for the contract.
 
-`CalculatorService.Operations(ctx)` lists the supported operations (`name`, `arity`, `symbol`) in display order, so the API (`GET /api/v1/operations`) and the UI are driven by the domain's registry.
+`CalculatorService.Operations(ctx)` lists the supported operations (`name`, `arity`, `symbol`) in display order, exposed as `GET /api/v1/operations`. The UI keeps its own typed copy (`frontend/src/lib/api/types.ts`), so the form renders without a round trip.
 
 **Interfaces arrive with real dependencies.** Calculation history, for example, would add a `CalculationRepository` interface defined next to the service (implemented by an adapter in `platform/`, faked in service tests) and injected into `NewCalculatorService(repo)`. The handler would not change.
+
+### Frontend, from the browser to the API
+
+1. `src/app/page.tsx` (Server Component) renders the `Calculator` client component with `calculateAction` as its action. The server-rendered `<form>` posts to the Server Action even before hydration.
+2. With JavaScript, `Calculator` validates on submit with `parseCalculationForm` (`src/lib/validation.ts`). Invalid input stays in the browser: inline errors (`aria-invalid`, `aria-describedby`), focus on the first bad field, no request.
+3. `calculateAction` (`src/app/actions.ts`) re-validates with the same parser, then calls `calculate()` in `src/lib/api/client.ts` (`server-only`, reads `BACKEND_URL`, 5 s timeout, `cache: "no-store"`).
+4. The client never throws. It returns `{ok: true, result}` for a 200 that matches the contract, `{ok: false, error}` for a known API error code, and `backend_unavailable` for network failure, timeout, 5xx or a body that breaks the contract.
+5. The action returns a serialisable `CalculatorState` that always echoes the inputs. The component renders the result, or `src/lib/errors.ts` maps the error code to a user message in the `aria-live` panel and flags the related operand. Unexpected render errors fall back to `src/app/error.tsx`; unknown URLs to `src/app/not-found.tsx`.
 
 ## Backend packages
 
@@ -49,13 +55,17 @@ A calculation, from the HTTP adapter inward:
 
 The dependency rule is enforced by golangci-lint **depguard**: anything under `internal/domain` importing `internal/platform`, Gin, `net/http` or `encoding/json` fails `make lint`.
 
+## Deployment
+
+`docker-compose.yml` runs two images. The backend is a static Go binary on distroless (non-root, built-in `-healthcheck` flag); the frontend is the Next.js `standalone` output on Node Alpine (non-root). The frontend reaches the API at `http://backend:8080` on the compose network and starts only once the backend is healthy; both restart `unless-stopped`. Only the frontend needs to be public; the backend port is published for API examples and the smoke test.
+
 ## Frontend layout
 
 | Path | Holds |
 |---|---|
-| `src/app/` | Routes. `page.tsx` is a Server Component; `actions.ts` holds Server Actions |
+| `src/app/` | Routes. `page.tsx` is a Server Component; `actions.ts` holds Server Actions; `error.tsx` / `not-found.tsx` are the fallbacks |
 | `src/components/` | UI. Only the interactive calculator is a Client Component |
-| `src/lib/` | `server-only` API client (`api/client.ts`) + shared API contract types (`api/types.ts`), `env.ts` (`BACKEND_URL`), input validation, action state, number formatting |
+| `src/lib/` | `server-only` API client (`api/client.ts`) + shared API contract types (`api/types.ts`), `env.ts` (`BACKEND_URL`), input validation (`validation.ts`), user-facing error messages (`errors.ts`), action state, number formatting |
 | `src/instrumentation.ts` | Validates `BACKEND_URL` once at server start (fail fast) |
 
 ## Testing strategy

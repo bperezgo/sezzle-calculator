@@ -41,7 +41,8 @@ Frontend (`cd frontend`): `pnpm dev` · `pnpm test` · `pnpm test:coverage` · `
 
 ## Testing
 
-- Go: testify (`assert`, `require`), table-driven; handler tests run against the real service (it is pure and fast), no mocks; name `Test{Type}_{Method}_{Scenario}`; one test/row per spec scenario. Target ≥90% on `domain/`.
+- Go: testify (`assert`, `require`), table-driven, no mocks; name `Test{Type}_{Method}_{Scenario}`; one test/row per spec scenario. Target ≥90% on `domain/`.
+- **Acceptance tests** live in `backend/tests/`: black-box HTTP through the fully wired router + real service, one test/row per ticket acceptance criterion. **Unit tests** sit next to the code (domain rules, middleware, branches HTTP cannot reach). Coverage is measured across packages (`-coverpkg=./internal/...`).
 - Frontend: Vitest + Testing Library; test behaviour through roles/labels, not implementation details. Mock `fetch` at the `src/lib` boundary.
 
 ## Commits

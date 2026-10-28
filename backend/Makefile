@@ -10,7 +10,7 @@ test:
 	go test ./... -count=1
 
 test-race:
-	go test ./... -race -count=1 -coverprofile=coverage.out
+	go test ./... -race -count=1 -coverpkg=./internal/... -coverprofile=coverage.out
 
 cover: test-race
 	go tool cover -func=coverage.out | tail -n 1

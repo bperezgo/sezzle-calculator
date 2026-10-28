@@ -39,7 +39,7 @@ The HTTP adapter: endpoints for calculator operations that validate input, handl
 - [x] `{"operation":"add","operands":["a","1"]}` → 400 `invalid_operand`.
 - [x] Unknown operation → 400 `unsupported_operation`; wrong arity → 400 `invalid_operand_count`.
 - [x] Every response (including 404/405/500) is `application/json`.
-- [x] Handler tests and router tests use the real service (no mocks). *Changed after review: the `ports.Calculator` interface and its mockery mock were removed as unneeded indirection.*
+- [x] Acceptance tests in `backend/tests/` drive the fully wired router with the real service (no mocks). *Changed after review: the `ports.Calculator` interface and its mockery mock were removed as unneeded indirection, and the handler/router end-to-end tests moved to `backend/tests/`.*
 - [x] `X-Request-ID` present on every response.
 
 - [x] Decision 5: `GET /api/v1/operations` lists the domain registry in display order.

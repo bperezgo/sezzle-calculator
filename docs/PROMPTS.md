@@ -164,3 +164,15 @@ Audit trail of every prompt used to build this project, as requested by the brie
 
 - **Outcome:** Removed `internal/domain/ports` (interface + generated mock), `.mockery.yaml`, the `generate-mocks`/`regenerate-mocks` Make targets and the `stretchr/objx` dependency. `NewCalculatorService()` returns `*CalculatorService`; `CalculationHandler` takes it directly. Handler tests rewritten against the real service (domain errors from real inputs, non-domain 500 via a cancelled context); the unknown-`Kind` mapper branch has a small internal test. Updated `AGENTS.md` (concrete types, no interfaces until a second implementation or external dependency), `docs/ARCHITECTURE.md`, the T03 criterion, a "Superseded" note in T02 and the tickets README. `.claude/settings.json` still lists the removed mock targets/path (edit blocked by the auto-mode classifier; harmless). Coverage unchanged (handler 92.5%); `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #9 — Acceptance tests in backend/tests
+
+- **Date:** 2026-10-27
+- **Ticket:** T03
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > calculation_handler_test.go is the same as an acceptance test, let's create those in a different folder, could be at ./backend/tests, right now we don't have other kind of ports, like repositories, but just for clarifying the responsibilities
+
+- **Outcome:** New `backend/tests/` acceptance suite (black-box HTTP through `server.NewRouter` with the real service, logs captured): `calculations_test.go`, `http_contract_test.go`, shared `app_test.go`. It merges `handler/calculation_handler_test.go` and the end-to-end `server/router_test.go`, both removed; every assertion kept, duplicates collapsed. The unexpected-error case now asserts the cause reaches the access log. Unit tests stay next to the code (middleware, `error_response_test.go`, domain). `make test-race` uses `-coverpkg=./internal/...` so acceptance coverage counts per package (total 100%). `AGENTS.md`, `docs/ARCHITECTURE.md` testing table and the T03 criterion updated; `make check` green.
+- **Review:** _to be filled by the developer._

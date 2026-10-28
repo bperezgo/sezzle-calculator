@@ -63,8 +63,8 @@ The dependency rule is enforced by golangci-lint **depguard**: anything under `i
 |---|---|---|
 | `domain/calculator` | Table-driven unit tests over pure functions | none |
 | `domain/service` | Scenario tests per spec requirement | none |
-| `platform/handler` | `httptest` + Gin test context, status + JSON body | none (real service) |
-| `platform/server` | End-to-end through the real router + real service | none |
+| `platform/handler`, `platform/middleware` | Unit tests for what HTTP cannot reach or isolates better (mapper fallback, request-ID rules, log shape) | none |
+| `backend/tests/` | **Acceptance**: black-box HTTP through the fully wired router + middleware + real service; one test/row per ticket criterion | none |
 | `frontend/src/lib` | Unit tests; `fetch` mocked with `vi.fn()` | mocked `fetch` |
 | `frontend/src/components` | Testing Library through roles/labels, `user-event` | mocked Server Action |
 | Stack | `docker compose up --wait` smoke test in CI | none |

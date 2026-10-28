@@ -6,7 +6,7 @@ The plan to deliver the brief in `test.md` (budget ~2–4 h of build time). Work
 |---|---|---|---|---|---|
 | [T00](T00-project-setup.md) | Project setup | repo | — | — | ✅ Done |
 | [T01](T01-calculator-domain.md) | Calculator domain: basic operations | backend | T00 | 30 min | ✅ Done |
-| [T02](T02-calculation-use-case.md) | Calculation use case and ports | backend | T01 | 20 min | ⬜ Todo |
+| [T02](T02-calculation-use-case.md) | Calculation use case and ports | backend | T01 | 20 min | ✅ Done |
 | [T03](T03-rest-api.md) | REST API with Gin | backend | T02 | 40 min | ⬜ Todo |
 | [T04](T04-advanced-operations.md) | Advanced operations: power, square root, percentage | backend | T03 | 25 min | ⬜ Todo |
 | [T05](T05-frontend-api-client.md) | Frontend API client and Server Action | frontend | T03 | 30 min | ⬜ Todo |

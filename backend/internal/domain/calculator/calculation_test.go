@@ -155,3 +155,16 @@ func TestNewCalculation_ZeroValueOperationIsUnsupported(t *testing.T) {
 
 	require.ErrorIs(t, err, domainerror.ErrUnsupportedOperation)
 }
+
+func TestOperations_ListsEveryOperationInDisplayOrder(t *testing.T) {
+	ops := calculator.Operations()
+
+	names := make([]string, 0, len(ops))
+	for _, op := range ops {
+		parsed, err := calculator.ParseOperation(op.Name())
+		require.NoError(t, err)
+		assert.Equal(t, op.Symbol(), parsed.Symbol())
+		names = append(names, op.Name())
+	}
+	assert.Equal(t, []string{"add", "subtract", "multiply", "divide"}, names)
+}

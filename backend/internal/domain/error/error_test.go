@@ -24,6 +24,9 @@ func TestError_Sentinels_HaveStableCodesKindsAndMessages(t *testing.T) {
 		{"invalid operand count", domainerror.ErrInvalidOperandCount, "invalid_operand_count", domainerror.KindInvalidInput, "wrong number of operands for operation"},
 		{"operand too large", domainerror.ErrOperandTooLarge, "operand_too_large", domainerror.KindInvalidInput, "operand exceeds the supported size"},
 		{"division by zero", domainerror.ErrDivisionByZero, "division_by_zero", domainerror.KindMath, "division by zero is undefined"},
+		{"negative square root", domainerror.ErrNegativeSquareRoot, "negative_square_root", domainerror.KindMath, "square root of a negative number is undefined"},
+		{"undefined power", domainerror.ErrUndefinedPower, "undefined_power", domainerror.KindMath, "power is undefined for these operands"},
+		{"result too large", domainerror.ErrResultTooLarge, "result_too_large", domainerror.KindMath, "result exceeds the supported size"},
 	}
 
 	for _, tt := range tests {

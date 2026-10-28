@@ -37,7 +37,30 @@ curl -s -X POST localhost:8080/api/v1/calculations \
 # {"operation":"divide","operands":["1","3"],"result":"0.3333333333333333"}
 ```
 
-Non-terminating division results are rounded half away from zero to 16 decimal places.
+Non-terminating results (division, square root, negative or fractional powers) are rounded half away from zero to 16 decimal places.
+
+| `operation` | Operands | Result |
+|---|---|---|
+| `add` · `subtract` · `multiply` · `divide` | `[a, b]` | `a + b` · `a − b` · `a × b` · `a ÷ b` |
+| `power` | `[base, exponent]` | `base ^ exponent`; exact for positive integer exponents |
+| `sqrt` | `[x]` | `√x` |
+| `percentage` | `[a, b]` | `a% of b` = `a × b / 100`, exact |
+
+`power` is bounded so arbitrary precision cannot be abused: `|exponent|` ≤ 1000, and the result must have at most 1000 significant digits and an exponent within ±1000 (the same range as operands), otherwise `result_too_large`.
+
+```bash
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"power","operands":["2","-1"]}'
+# {"operation":"power","operands":["2","-1"],"result":"0.5"}
+
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"sqrt","operands":["2"]}'
+# {"operation":"sqrt","operands":["2"],"result":"1.414213562373095"}
+
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"percentage","operands":["12.5","80"]}'
+# {"operation":"percentage","operands":["12.5","80"],"result":"10"}
+```
 
 ## `GET /api/v1/operations`
 
@@ -46,7 +69,9 @@ The supported operations, in display order.
 ```bash
 curl -s localhost:8080/api/v1/operations
 # {"operations":[{"name":"add","arity":2,"symbol":"+"},{"name":"subtract","arity":2,"symbol":"−"},
-#                {"name":"multiply","arity":2,"symbol":"×"},{"name":"divide","arity":2,"symbol":"÷"}]}
+#                {"name":"multiply","arity":2,"symbol":"×"},{"name":"divide","arity":2,"symbol":"÷"},
+#                {"name":"power","arity":2,"symbol":"^"},{"name":"sqrt","arity":1,"symbol":"√"},
+#                {"name":"percentage","arity":2,"symbol":"%"}]}
 ```
 
 ## `GET /health`
@@ -68,7 +93,10 @@ Envelope: `{"error":{"code":"…","message":"…"}}`. `code` is the stable contr
 | 400 | `invalid_operand` | An operand is not a decimal number (`"a"`) |
 | 400 | `operand_too_large` | An operand has more than 50 significant digits or an exponent beyond ±1000 |
 | 413 | `payload_too_large` | Body over 1 MiB |
-| 422 | `division_by_zero` | Well-formed request, mathematically undefined |
+| 422 | `division_by_zero` | Well-formed request, mathematically undefined: divisor is zero |
+| 422 | `undefined_power` | `0 ^ 0`, `0 ^ y` with `y < 0`, or a negative base with a fractional exponent |
+| 422 | `negative_square_root` | `sqrt` of a negative number (no complex results) |
+| 422 | `result_too_large` | A `power` result beyond the size limits above (e.g. `10 ^ 100000`) |
 | 404 | `not_found` | Unknown route |
 | 405 | `method_not_allowed` | Known route, wrong method (`Allow` header lists the right one) |
 | 500 | `internal_error` | Unexpected failure; the cause is logged with the request ID, never returned |
@@ -77,6 +105,10 @@ Envelope: `{"error":{"code":"…","message":"…"}}`. `code` is the stable contr
 curl -s -X POST localhost:8080/api/v1/calculations \
   -d '{"operation":"divide","operands":["10","0"]}'
 # 422 {"error":{"code":"division_by_zero","message":"division by zero is undefined"}}
+
+curl -s -X POST localhost:8080/api/v1/calculations \
+  -d '{"operation":"power","operands":["10","100000"]}'
+# 422 {"error":{"code":"result_too_large","message":"result exceeds the supported size"}}
 
 curl -s -X POST localhost:8080/api/v1/calculations \
   -d '{"operation":"add","operands":["a","1"]}'

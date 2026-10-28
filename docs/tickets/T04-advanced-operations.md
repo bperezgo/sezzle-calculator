@@ -3,7 +3,7 @@
 - **Area:** backend
 - **Depends on:** T03
 - **Estimate:** 25 min
-- **Status:** ⬜ Todo
+- **Status:** ✅ Done
 
 ## Goal
 
@@ -26,16 +26,17 @@ The brief's optional operations, added purely in the domain — no handler or ro
 
 1. **Percentage semantics** — ✅ `percentage(a, b) = a% of b = a × b / 100` (`["20", "50"]` → `10`).
 2. **Square root of negative** — ✅ error (`negative_square_root`), no complex numbers.
-3. **`0 ^ 0`** — mathematically debated; `decimal` treats it as undefined. *Recommendation:* follow the library → `undefined_power` (simpler and documented), rather than the `1` convention.
+3. **`0 ^ 0`** — mathematically debated; `decimal` treats it as undefined. ✅ follow the library → `undefined_power` (simpler and documented), rather than the `1` convention.
+4. **Size guard** — ✅ `|exponent|` ≤ 1000, and a power result must stay within the operand bounds' exponent (±1000) and have ≤ 1000 significant digits; otherwise `result_too_large`. Out-of-range cases are rejected from an estimate before any big-number work, then checked exactly. All three new codes are `KindMath` → 422.
 
 ## Acceptance criteria
 
-- [ ] `power ["2", "10"]` → `1024`; `power ["2", "-1"]` → `0.5`; `power ["4", "0.5"]` → `2`.
-- [ ] `power ["0", "-1"]`, `power ["0", "0"]`, `power ["-8", "0.5"]` → `undefined_power`.
-- [ ] `power ["10", "100000"]` → `result_too_large` (fast, no huge allocation).
-- [ ] `sqrt ["16"]` → `4`; `sqrt ["2"]` → `1.414213562373095` (rounded to 16 places, trailing zero trimmed); `sqrt ["-1"]` → `negative_square_root`; `sqrt ["1", "2"]` → `invalid_operand_count`.
-- [ ] `percentage ["20", "50"]` → `10`; `percentage ["12.5", "80"]` → `10`.
-- [ ] No changes in `platform/handler` or `platform/server` besides docs/tests.
+- [x] `power ["2", "10"]` → `1024`; `power ["2", "-1"]` → `0.5`; `power ["4", "0.5"]` → `2`.
+- [x] `power ["0", "-1"]`, `power ["0", "0"]`, `power ["-8", "0.5"]` → `undefined_power`.
+- [x] `power ["10", "100000"]` → `result_too_large` (fast, no huge allocation).
+- [x] `sqrt ["16"]` → `4`; `sqrt ["2"]` → `1.414213562373095` (rounded to 16 places, trailing zero trimmed); `sqrt ["-1"]` → `negative_square_root`; `sqrt ["1", "2"]` → `invalid_operand_count`.
+- [x] `percentage ["20", "50"]` → `10`; `percentage ["12.5", "80"]` → `10`.
+- [x] No changes in `platform/handler` or `platform/server` besides docs/tests.
 
 ## Definition of done
 

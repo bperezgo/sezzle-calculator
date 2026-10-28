@@ -176,3 +176,20 @@ Audit trail of every prompt used to build this project, as requested by the brie
 
 - **Outcome:** New `backend/tests/` acceptance suite (black-box HTTP through `server.NewRouter` with the real service, logs captured): `calculations_test.go`, `http_contract_test.go`, shared `app_test.go`. It merges `handler/calculation_handler_test.go` and the end-to-end `server/router_test.go`, both removed; every assertion kept, duplicates collapsed. The unexpected-error case now asserts the cause reaches the access log. Unit tests stay next to the code (middleware, `error_response_test.go`, domain). `make test-race` uses `-coverpkg=./internal/...` so acceptance coverage counts per package (total 100%). `AGENTS.md`, `docs/ARCHITECTURE.md` testing table and the T03 criterion updated; `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #10 — Advanced operations
+
+- **Date:** 2026-10-27
+- **Ticket:** T04
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > let's continue with @docs/tickets/T04-advanced-operations.md
+
+- **Outcome:** Decision 3 (`0 ^ 0` → `undefined_power`) accepted as recommended; added decision 4 (size guard: `|exponent|` ≤ 1000, power results ≤ 1000 significant digits and exponent within ±1000). Tests first: `backend/tests/advanced_operations_test.go` (one row per criterion, plus a timing check for huge powers), domain rows in `calculation_test.go` (boundaries: `10^1000` / `10^-1000` accepted, `11^1000`, `0.001^500`, `1.1^961` (1001 digits) rejected; `1.1^960` (1000 digits) accepted), and contract rows for the new errors. Then, all in `domain/`:
+  - `power` (`^`) via `PowWithPrecision(exp, 16)`: undefined cases are classified before the call → `undefined_power`; `powerMayFit` rejects out-of-range results from a log10 estimate and a digit lower bound before any big-number work, and `resultFits` checks exactly afterwards → `result_too_large`.
+  - `sqrt` (`√`, the first unary operation) via `SqrtRound(16)`; negatives → `negative_square_root`.
+  - `percentage` (`%`) = `a × b` shifted two places, exact.
+  - New `KindMath` errors (422 through the existing mapper). No changes to `platform/handler` or `platform/server`. The existing operation-list tests (domain, service, `GET /api/v1/operations`) were extended with the three new entries.
+  - `docs/api/calculator.md`: operations table, size limits, new error codes; curl examples checked against a running server. Worst-case inputs run in < 0.5 ms; coverage 100%; `make check` green.
+- **Review:** _to be filled by the developer._

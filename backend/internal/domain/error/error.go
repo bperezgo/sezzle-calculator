@@ -21,6 +21,9 @@ const (
 	CodeInvalidOperandCount  Code = "invalid_operand_count"
 	CodeOperandTooLarge      Code = "operand_too_large"
 	CodeDivisionByZero       Code = "division_by_zero"
+	CodeNegativeSquareRoot   Code = "negative_square_root"
+	CodeUndefinedPower       Code = "undefined_power"
+	CodeResultTooLarge       Code = "result_too_large"
 )
 
 const (
@@ -29,6 +32,9 @@ const (
 	MessageInvalidOperandCount  = "wrong number of operands for operation"
 	MessageOperandTooLarge      = "operand exceeds the supported size"
 	MessageDivisionByZero       = "division by zero is undefined"
+	MessageNegativeSquareRoot   = "square root of a negative number is undefined"
+	MessageUndefinedPower       = "power is undefined for these operands"
+	MessageResultTooLarge       = "result exceeds the supported size"
 )
 
 var (
@@ -37,6 +43,9 @@ var (
 	ErrInvalidOperandCount  = &Error{Kind: KindInvalidInput, Code: CodeInvalidOperandCount, Message: MessageInvalidOperandCount}
 	ErrOperandTooLarge      = &Error{Kind: KindInvalidInput, Code: CodeOperandTooLarge, Message: MessageOperandTooLarge}
 	ErrDivisionByZero       = &Error{Kind: KindMath, Code: CodeDivisionByZero, Message: MessageDivisionByZero}
+	ErrNegativeSquareRoot   = &Error{Kind: KindMath, Code: CodeNegativeSquareRoot, Message: MessageNegativeSquareRoot}
+	ErrUndefinedPower       = &Error{Kind: KindMath, Code: CodeUndefinedPower, Message: MessageUndefinedPower}
+	ErrResultTooLarge       = &Error{Kind: KindMath, Code: CodeResultTooLarge, Message: MessageResultTooLarge}
 )
 
 type Error struct {

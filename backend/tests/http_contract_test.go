@@ -20,7 +20,10 @@ func TestOperationsAPI_Get_ListsTheDomainRegistryInOrder(t *testing.T) {
 		{"name":"add","arity":2,"symbol":"+"},
 		{"name":"subtract","arity":2,"symbol":"−"},
 		{"name":"multiply","arity":2,"symbol":"×"},
-		{"name":"divide","arity":2,"symbol":"÷"}
+		{"name":"divide","arity":2,"symbol":"÷"},
+		{"name":"power","arity":2,"symbol":"^"},
+		{"name":"sqrt","arity":1,"symbol":"√"},
+		{"name":"percentage","arity":2,"symbol":"%"}
 	]}`, rec.Body.String())
 }
 

@@ -162,5 +162,8 @@ func TestCalculatorService_Operations_ListsSupportedOperationsInOrder(t *testing
 		{Name: "subtract", Arity: 2, Symbol: "−"},
 		{Name: "multiply", Arity: 2, Symbol: "×"},
 		{Name: "divide", Arity: 2, Symbol: "÷"},
+		{Name: "power", Arity: 2, Symbol: "^"},
+		{Name: "sqrt", Arity: 1, Symbol: "√"},
+		{Name: "percentage", Arity: 2, Symbol: "%"},
 	}, got)
 }

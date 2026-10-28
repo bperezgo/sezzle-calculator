@@ -68,4 +68,4 @@ The dependency rule is enforced by golangci-lint **depguard**: anything under `i
 | `backend/tests/` | **Acceptance**: black-box HTTP through the fully wired router + middleware + real service; one test/row per ticket criterion | none |
 | `frontend/src/lib` | Unit tests; `fetch` mocked with `vi.fn()` | mocked `fetch` |
 | `frontend/src/components` | Testing Library through roles/labels, `user-event` | mocked Server Action |
-| Stack | `docker compose up --wait` smoke test in CI | none |
+| Stack | `scripts/smoke.sh` (`make smoke`, CI `docker` job) against `docker compose up --wait`: real API calculations and the no-JS form post through the backend | none |

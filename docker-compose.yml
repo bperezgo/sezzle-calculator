@@ -1,0 +1,32 @@
+# Runs the full stack locally: `make up` (or `docker compose up --build`), then open http://localhost:3000.
+name: sezzle-calculator
+
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        VERSION: local
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      GIN_MODE: release
+    healthcheck:
+      test: ["CMD", "/calculator", "-healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Read only on the Next.js server (Server Actions / Server Components); the browser never calls the backend directly.
+      BACKEND_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy

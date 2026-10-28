@@ -1,0 +1,13 @@
+.env*
+build/
+coverage.out
+coverage.html
+*.md
+Makefile
+.golangci.yml
+.mockery.yaml
+**/*_test.go
+**/testdata/
+.idea
+.vscode
+.DS_Store

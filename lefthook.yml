@@ -1,0 +1,40 @@
+# Git hooks, managed by lefthook (https://lefthook.dev). Install once per clone: make install-hooks
+# Bypass in an emergency: git commit --no-verify
+#
+#   pre-commit: fast guardrails on staged files — secret scan, lint, format.
+#   pre-push:   the full test suites.
+#
+# gitleaks runs best-effort locally (CI enforces it).
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: secret-scan
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks protect --staged --redact --no-banner
+        else
+          echo "gitleaks not installed — skipping local secret scan (CI enforces it). brew install gitleaks"
+        fi
+    - name: backend-lint
+      root: backend/
+      glob: "*.go"
+      run: golangci-lint run
+    - name: frontend-lint
+      root: frontend/
+      glob: "*.{ts,tsx,js,mjs,cjs}"
+      run: pnpm exec eslint {staged_files}
+    - name: frontend-format
+      root: frontend/
+      glob: "*.{ts,tsx,js,mjs,cjs,json,css,md}"
+      run: pnpm exec prettier --check {staged_files}
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: backend-test
+      root: backend/
+      run: go test ./... -race -count=1
+    - name: frontend-test
+      root: frontend/
+      run: pnpm typecheck && pnpm test

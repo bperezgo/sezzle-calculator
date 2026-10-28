@@ -284,3 +284,17 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - No logs in Loki: the Alloy container was running but not attached to `sezzle-calculator_default`, and every push failed with `lookup loki ... network is unreachable`. Its port wasn't published either. Most likely an earlier start had failed because another project's Alloy held 12345, which left a half-created container. Fixed with `docker compose --profile observability up -d --force-recreate --no-deps alloy`; `make down && make up-obs` does the same. Verified: backend and frontend streams arrive in Loki with the `level` label.
   - T10 committed. The derived-link click criterion stays open until the developer checks it in the UI.
 - **Review:** _to be filled by the developer._
+
+## #16 — Dependabot PR breaks frontend lint (TypeScript 7)
+
+- **Date:** 2026-10-27
+- **Ticket:** — (CI maintenance)
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > I am seeing the following error in the ci [pasted log: "typescript-eslint does not support TS 7.0." … ESLint: 10.13.0 …] https://github.com/bperezgo/sezzle-calculator/actions/runs/40632368367/job/122631469940 Can you check?
+
+- **Outcome:**
+  - The failing run is the grouped Dependabot npm PR, not `main`. It bumps `typescript` ^5→^7, `eslint` ^9→^10 and `@types/node` ^24→^26. typescript-eslint 8.x (via `eslint-config-next`) refuses to load on TS 7 (typescript-eslint#10940).
+  - `.github/dependabot.yml` now ignores semver-major updates for `typescript` (until typescript-eslint supports TS 7) and `@types/node` (it tracks the Node 24 runtime).
+- **Review:** _to be filled by the developer._

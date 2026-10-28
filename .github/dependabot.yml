@@ -16,6 +16,13 @@ updates:
     groups:
       npm-packages:
         patterns: ["*"]
+    ignore:
+      # typescript-eslint (via eslint-config-next) can't load on TS 7 yet: typescript-eslint#10940.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Types track the Node runtime major (engines >=24, CI on Node 24).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # Understands SHA-pinned `uses:` and bumps both the SHA and the trailing version comment.
   - package-ecosystem: "github-actions"

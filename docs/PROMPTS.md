@@ -193,3 +193,21 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - New `KindMath` errors (422 through the existing mapper). No changes to `platform/handler` or `platform/server`. The existing operation-list tests (domain, service, `GET /api/v1/operations`) were extended with the three new entries.
   - `docs/api/calculator.md`: operations table, size limits, new error codes; curl examples checked against a running server. Worst-case inputs run in < 0.5 ms; coverage 100%; `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #11 — Frontend API client and Server Action
+
+- **Date:** 2026-10-27
+- **Ticket:** T05
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Let's continue with @docs/tickets/T05-frontend-api-client.md, and go with the recommended things
+
+- **Outcome:** Recommended decision taken: no validation library (small typed parser). Read the Next 16 Server Actions, forms, instrumentation and `server-only` docs first. Tests first (63 frontend tests total), then:
+  - `src/lib/api/types.ts`: `Operation` (+ arity), `CalculationRequest/Response` with string operands/result, `ApiErrorCode` union (every API code + client-side `backend_unavailable`), `CalculateResult` discriminated union.
+  - `src/lib/api/client.ts` (`server-only`): `calculate(req, { timeoutMs })` — POST with `cache: "no-store"` and `AbortSignal.timeout` (5 s); network error, timeout, 5xx and any body that breaks the contract (bad JSON, numeric result, unknown operation/error code) → `backend_unavailable`; never throws. Tests cover success, all 12 non-5xx error codes, malformed responses, network error and a real timeout.
+  - `src/lib/env.ts` (`server-only`): `parseBackendUrl` validates http(s) and strips the trailing slash; `src/instrumentation.ts` calls it at server start (checked: the built server logs "BACKEND_URL is not set…" when it's missing).
+  - `src/lib/validation.ts`: `parseCalculationForm` (fields `operation`, `a`, `b`; unary ops ignore `b`) returning field error codes for T07. `src/lib/calculator-state.ts`: serialisable `useActionState` state that always echoes the inputs. `src/app/actions.ts`: `calculateAction`.
+  - `frontend/.env.example`, un-ignored in `frontend/.gitignore`; `server-only` added as a dependency and aliased to its empty module in Vitest.
+  - `pnpm build` with a sentinel `BACKEND_URL`: neither name nor value in `.next/static` (re-check in T06 once the page uses the action). `make check` green.
+- **Review:** _to be filled by the developer._

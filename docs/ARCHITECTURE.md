@@ -55,7 +55,8 @@ The dependency rule is enforced by golangci-lint **depguard**: anything under `i
 |---|---|
 | `src/app/` | Routes. `page.tsx` is a Server Component; `actions.ts` holds Server Actions |
 | `src/components/` | UI. Only the interactive calculator is a Client Component |
-| `src/lib/` | `server-only` API client + shared API contract types, input validation, number formatting |
+| `src/lib/` | `server-only` API client (`api/client.ts`) + shared API contract types (`api/types.ts`), `env.ts` (`BACKEND_URL`), input validation, action state, number formatting |
+| `src/instrumentation.ts` | Validates `BACKEND_URL` once at server start (fail fast) |
 
 ## Testing strategy
 

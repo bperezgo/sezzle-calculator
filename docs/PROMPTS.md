@@ -211,3 +211,20 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - `frontend/.env.example`, un-ignored in `frontend/.gitignore`; `server-only` added as a dependency and aliased to its empty module in Vitest.
   - `pnpm build` with a sentinel `BACKEND_URL`: neither name nor value in `.next/static` (re-check in T06 once the page uses the action). `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #12 — Calculator UI
+
+- **Date:** 2026-10-27
+- **Ticket:** T06
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Let's contineu with @docs/tickets/T06-calculator-ui.md
+
+- **Outcome:** Tests first (component + formatter), then:
+  - `src/components/calculator/calculator.tsx` (client leaf): labelled first/second number inputs (`inputMode="decimal"`), `<select>` operation picker (`÷ Divide`, …), submit, and an `<output role="status" aria-live="polite">` result panel showing the expression (`10 ÷ 4 =`) and the grouped result with the exact value in `title`. `useActionState`; pending disables submit ("Calculating…"). `sqrt` hides the second operand and relabels the first "Number". Takes the action as a prop so tests need no module mocks; `page.tsx` passes `calculateAction`.
+  - `src/lib/format.ts`: thousands grouping on the string itself. Deviation from the ticket's `Intl.NumberFormat` suggestion, found by a test: Intl formats `10^1000` as `∞` and caps fraction digits at 100. Ticket updated.
+  - Bug found during the manual check and reproduced in a test first: React 19 resets the form after an action and doesn't restore a controlled `<select>`, so the picker snapped back to "Add". With JS, submission now goes through `onSubmit` + `startTransition(formAction)`, which skips the reset. Without JS, the `action` attribute still posts to the Server Action.
+  - `vitest.setup.ts`: Testing Library `cleanup` after each test (auto-cleanup needs Vitest globals).
+  - Verified against the running Go API: no-JS multipart POST renders `10 ÷ 4 = 2.5` with inputs kept; at 320 px there's no horizontal scroll and controls are 44 px; a 1000-digit `2^1000` wraps and scrolls; dark mode follows `prefers-color-scheme`. `BACKEND_URL` is still absent from `.next/static`. Error messages are the raw API text for now; T07 maps them. `make check` green.
+- **Review:** _to be filled by the developer._

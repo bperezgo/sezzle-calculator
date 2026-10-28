@@ -3,7 +3,7 @@
 - **Area:** frontend
 - **Depends on:** T05
 - **Estimate:** 45 min
-- **Status:** ⬜ Todo
+- **Status:** ✅ Done
 
 ## Goal
 
@@ -15,7 +15,7 @@ An intuitive, responsive calculator that renders on the server and enhances on t
 - `src/app/page.tsx` (Server Component): layout, heading, renders the calculator.
 - `src/components/calculator/` (Client Component leaf): operands, operation picker, submit, result panel. Uses `useActionState(calculateAction)`; pending state disables submit.
 - Unary operations (sqrt) hide/disable the second operand.
-- Result display in `src/lib/format.ts`: the backend's exact decimal string, grouped for readability (`Intl.NumberFormat` accepts decimal strings without converting to float). Long results (`1/3`) wrap or truncate with the full value available (e.g. `title`/copy). Never round-trip through `number`.
+- Result display in `src/lib/format.ts`: the backend's exact decimal string, grouped for readability. Grouping is done on the string itself, not `Intl.NumberFormat`: Intl turns integers past ~1e308 into `∞` and caps fraction digits at 100, and `power` results can have 1000 digits. Long results (`1/3`) wrap or truncate with the full value available (e.g. `title`/copy). Never round-trip through `number`.
 - Responsive: single column on phones (≥ 320 px), comfortable tap targets (≥ 44 px), light/dark via `prefers-color-scheme`.
 - Accessibility: every input labelled, result and errors in an `aria-live="polite"` region, full keyboard use, visible focus.
 
@@ -29,11 +29,11 @@ An intuitive, responsive calculator that renders on the server and enhances on t
 
 ## Acceptance criteria
 
-- [ ] Entering `10`, `÷`, `4` and submitting shows `2.5`.
-- [ ] Works with JavaScript disabled (form posts to the Server Action, page re-renders with the result).
-- [ ] Usable at 320 px width with no horizontal scroll.
-- [ ] Component tests: renders all operations, unary op hides second operand, shows result from action state, submit disabled while pending.
-- [ ] No ESLint/a11y warnings.
+- [x] Entering `10`, `÷`, `4` and submitting shows `2.5`. (component test; also checked in the browser against the Go API)
+- [x] Works with JavaScript disabled (form posts to the Server Action, page re-renders with the result). Checked with a plain multipart `curl` POST of the server-rendered form: the response renders `10 ÷ 4 = 2.5` with the inputs kept.
+- [x] Usable at 320 px width with no horizontal scroll. Measured in a 320 px frame: `scrollWidth` = viewport width, every control 44 px tall, long results wrap.
+- [x] Component tests: renders all operations, unary op hides second operand, shows result from action state, submit disabled while pending. (`src/components/calculator/calculator.test.tsx`)
+- [x] No ESLint/a11y warnings.
 
 ## Definition of done
 

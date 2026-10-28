@@ -23,13 +23,15 @@
 
 ## Request flow
 
-A calculation, from the HTTP adapter inward (T03 adds the handler; T02 provides everything below it):
+A calculation, from the HTTP adapter inward:
 
-1. `platform/handler` binds the JSON body into `dto.CalculationRequest{Operation, Operands []string}`. Operands stay strings, so no `float64` is ever involved.
+0. `platform/server` runs every request through `middleware`: request ID (`X-Request-ID` echoed or generated) → `slog` access log → JSON panic recovery → 1 MiB body limit. Unknown routes/methods answer the JSON error envelope (404/405).
+
+1. `platform/handler` decodes the JSON body into `dto.CalculationRequest{Operation, Operands []string}`. Operands may be JSON strings or numbers; numbers keep their raw text, so no `float64` is ever involved. Unusable bodies stop here with 400 `invalid_request` (413 over the limit).
 2. It calls the driving port `ports.Calculator.Calculate(ctx, req)`. The handler only knows the interface; tests use the generated `mocks.MockCalculator`.
 3. `service.CalculatorService` returns `ctx.Err()` at once if the request was cancelled. Otherwise it builds value objects: `calculator.ParseOperation` → `calculator.NewOperand` per operand → `calculator.NewCalculation` (arity check) → `Evaluate()`.
 4. On success it returns `dto.CalculationResult{Operation, Operands, Result}`. Operands are echoed in canonical form (`"2.50"` → `"2.5"`) and the result is a canonical decimal string.
-5. On failure the `*domainerror.Error` is returned **untouched** (`Kind`, `Code`, `Fields`). The handler-side mapper turns `Kind` into an HTTP status (T03).
+5. On failure the `*domainerror.Error` is returned **untouched** (`Kind`, `Code`, `Fields`). `handler/error_response.go` is the single mapper: `KindInvalidInput` → 400, `KindMath` → 422, anything else → 500 `internal_error` with the cause logged, never returned. See `docs/api/calculator.md` for the contract.
 
 `ports.Calculator.Operations(ctx)` lists the supported operations (`name`, `arity`, `symbol`) in display order, so the API (`GET /api/v1/operations`) and the UI are driven by the domain's registry.
 

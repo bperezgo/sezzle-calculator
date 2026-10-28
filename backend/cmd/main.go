@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"sezzle.com/calculator/internal/domain/service"
 	"sezzle.com/calculator/internal/platform/config"
 	"sezzle.com/calculator/internal/platform/handler"
 	"sezzle.com/calculator/internal/platform/server"
@@ -46,8 +47,9 @@ func main() {
 }
 
 func run(cfg config.Config, logger *slog.Logger) error {
-	router := server.NewRouter(cfg, server.Handlers{
-		Health: handler.NewHealthHandler(version),
+	router := server.NewRouter(cfg, logger, server.Handlers{
+		Health:      handler.NewHealthHandler(version),
+		Calculation: handler.NewCalculationHandler(service.NewCalculatorService()),
 	})
 
 	srv := &http.Server{

@@ -134,3 +134,21 @@ Audit trail of every prompt used to build this project, as requested by the brie
   - `docs/ARCHITECTURE.md` gains a "Request flow" section, including a note that persistence would add a driven port.
   - Coverage is 100% on `domain/service`; `make check` green.
 - **Review:** _to be filled by the developer._
+
+## #7 — Implement T03
+
+- **Date:** 2026-10-27
+- **Ticket:** T03
+- **Tool / model:** Claude Code · claude-opus-5-5
+- **Prompt:**
+
+  > Let's implement it @docs/tickets/T03-rest-api.md
+
+- **Outcome:** Decisions 4 (result always a string; operands accept strings or JSON numbers, read from raw text) and 5 (`GET /api/v1/operations`) accepted as recommended. Tests written first (handler suite on the mockery mock, middleware unit tests, router end-to-end on the real service), then:
+  - `platform/handler/calculation_handler.go`: strict JSON decode (one value, required `operation`/`operands`, operands string-or-number via a custom `UnmarshalJSON`) → `ports.Calculator` → JSON; `Operations` handler.
+  - `platform/handler/error_response.go`: the single domain-error → HTTP mapper (400 / 422 / generic 500 with the cause recorded for the log) plus transport codes `invalid_request`, `payload_too_large`, `not_found`, `method_not_allowed`, `internal_error`.
+  - `platform/middleware`: request ID (echo if safe, else generated), `slog` access log, JSON panic recovery, 1 MiB body limit.
+  - Router: `POST /api/v1/calculations`, `GET /api/v1/operations`, JSON 404/405; wiring in `cmd/main.go`.
+  - `docs/api/calculator.md` with curl examples, all verified against `make up`; `docs/ARCHITECTURE.md` request flow updated.
+  - Coverage: handler 92.5%, middleware 96.9%, server 100%, domain 100%; `make check` green.
+- **Review:** _to be filled by the developer._

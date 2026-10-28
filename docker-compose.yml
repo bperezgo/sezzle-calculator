@@ -1,4 +1,5 @@
 # Runs the full stack locally: `make up` (or `docker compose up --build`), then open http://localhost:3000.
+# Host ports can be moved if 3000/8080 are taken: BACKEND_PORT=18080 FRONTEND_PORT=13000 make up.
 name: sezzle-calculator
 
 services:
@@ -7,8 +8,9 @@ services:
       context: ./backend
       args:
         VERSION: local
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     environment:
       PORT: "8080"
       GIN_MODE: release
@@ -22,11 +24,23 @@ services:
   frontend:
     build:
       context: ./frontend
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       # Read only on the Next.js server (Server Actions / Server Components); the browser never calls the backend directly.
       BACKEND_URL: http://backend:8080
+    # The image's healthcheck runs every 30 s; check faster here so `up --wait` returns quickly.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy

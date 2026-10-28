@@ -137,10 +137,8 @@ jobs:
       - name: Start stack
         run: docker compose up --build --detach --wait
 
-      - name: Smoke test
-        run: |
-          curl --fail --silent --show-error http://localhost:8080/health
-          curl --fail --silent --show-error --output /dev/null http://localhost:3000/
+      - name: Smoke test (API calculation + frontend form through the backend)
+        run: scripts/smoke.sh
 
       - name: Logs on failure
         if: failure()

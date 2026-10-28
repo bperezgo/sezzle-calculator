@@ -1,4 +1,4 @@
-.PHONY: install install-hooks backend-check frontend-check check cover up down logs
+.PHONY: install install-hooks backend-check frontend-check check cover up down logs smoke
 
 install:
 	cd frontend && pnpm install
@@ -28,6 +28,10 @@ up:
 
 down:
 	docker compose down
+
+# Real calculations against the running stack (`make up` first); same script as CI.
+smoke:
+	scripts/smoke.sh
 
 logs:
 	docker compose logs -f
